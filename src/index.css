@@ -1,0 +1,15 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-startup-blue: #0a66c2;
+  --color-startup-bg: #f3f2ef;
+  --color-startup-dark: #1d2226;
+  
+  /* Custom shadow for LinkedIn-style cards */
+  --shadow-card: 0 0 0 1px rgb(0 0 0 / 8%), 0 2px 4px rgb(0 0 0 / 3%);
+}
+
+body {
+  background-color: var(--color-startup-bg);
+  color: var(--color-startup-dark);
+}
