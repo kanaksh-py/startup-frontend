@@ -7,6 +7,7 @@ import Feed from './pages/Feed';
 import Chat from './pages/Chat';
 import Navbar from './components/Navbar';
 import Profile from './pages/Profile';
+import SearchResults from './pages/SearchResults';
 
 function App() {
   const [socket, setSocket] = useState(null);
@@ -53,7 +54,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/feed" element={<Feed />} />
         <Route path="/profile/:id" element={<Profile />} />
-        
+        <Route path="/search" element={<SearchResults />} />
         {/* Chat component clears the count via setUnreadCount */}
         <Route 
           path="/chat" 

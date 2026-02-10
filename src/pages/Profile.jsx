@@ -27,33 +27,35 @@ export default function Profile() {
 
     useEffect(() => {
         const fetchProfileData = async () => {
-            setLoading(true);
-            try {
-                const profileRes = await api.get(`/profiles/${id}`);
-                setData(profileRes.data);
-                
-                const p = profileRes.data.profile;
-                setEditForm({
-                    ...p,
-                    city: p.location?.city || '',
-                    country: p.location?.country || ''
-                });
+    setLoading(true);
+    try {
+        // This will now work for everyone
+        const profileRes = await api.get(`/profiles/${id}`);
+        setData(profileRes.data);
+        
+        const p = profileRes.data.profile;
+        setEditForm({
+            ...p,
+            city: p.location?.city || '',
+            country: p.location?.country || ''
+        });
 
-                try {
-                    const statusRes = await api.get('/auth/status');
-                    setMyStatus(statusRes.data);
-                } catch (authErr) {
-                    setMyStatus(null);
-                }
+        // Use a separate try-catch for the status check
+        try {
+            const statusRes = await api.get('/auth/status');
+            setMyStatus(statusRes.data);
+        } catch (statusErr) {
+            // User is a guest, set status to null so "Edit" stays hidden
+            setMyStatus(null); 
+        }
 
-                setError(null);
-            } catch (err) {
-                console.error("Profile Error:", err);
-                setError("Profile not found");
-            } finally {
-                setLoading(false);
-            }
-        };
+        setError(null);
+    } catch (err) {
+        setError("Profile not found");
+    } finally {
+        setLoading(false);
+    }
+};
         fetchProfileData();
     }, [id]);
 
