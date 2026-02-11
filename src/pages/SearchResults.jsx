@@ -5,19 +5,16 @@ import { Search, Globe, MapPin, Rocket, Building2, Filter, X } from 'lucide-reac
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function SearchResults() {
-    // 1. Hook to read the "?q=..." from the URL
     const [searchParams] = useSearchParams();
-    const query = searchParams.get('q'); // This must match the 'q' in your Navbar
+    const query = searchParams.get('q');
     const navigate = useNavigate();
 
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(true);
     
-    // Filter States
     const [filterType, setFilterType] = useState('all'); 
     const [selectedCity, setSelectedCity] = useState('all');
 
-    // 2. Fetch results whenever the 'query' in the URL changes
     useEffect(() => {
         const fetchResults = async () => {
             if (!query) {
@@ -27,7 +24,6 @@ export default function SearchResults() {
             
             setLoading(true);
             try {
-                // Ensure this matches your backend endpoint
                 const res = await api.get(`/profiles/search?query=${encodeURIComponent(query)}`);
                 setResults(res.data.results || []);
             } catch (err) {
@@ -38,15 +34,13 @@ export default function SearchResults() {
             }
         };
         fetchResults();
-    }, [query]); // Triggered whenever the user presses Enter in Navbar
+    }, [query]);
 
-    // Generate unique city list from current results for the filter dropdown
     const cities = useMemo(() => {
         const uniqueCities = new Set(results.map(item => item.location?.city).filter(Boolean));
         return ['all', ...Array.from(uniqueCities)];
     }, [results]);
 
-    // Filtering logic
     const filteredResults = useMemo(() => {
         return results.filter(item => {
             const matchesType = filterType === 'all' || item.role === filterType;
@@ -143,7 +137,8 @@ export default function SearchResults() {
                                     animate={{ opacity: 1, scale: 1 }}
                                     exit={{ opacity: 0, scale: 0.98 }}
                                     key={item._id}
-                                    onClick={() => navigate(`/profile/${item._id}`)}
+                                    /* CRITICAL CHANGE: Navigate using slug instead of _id */
+                                    onClick={() => navigate(`/profile/${item.slug}`)}
                                     className="bg-white p-6 md:p-8 rounded-[40px] border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-gray-200/40 transition-all cursor-pointer group flex flex-col md:flex-row items-center gap-8"
                                 >
                                     <img 

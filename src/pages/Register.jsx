@@ -2,17 +2,11 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../api/axios';
 import { 
-    Rocket, 
-    Building2, 
-    Upload, 
-    ChevronRight, 
-    ChevronLeft, 
-    CheckCircle, 
-    PlusCircle,
-    Globe,
-    MapPin,
-    Briefcase
+    Rocket, Building2, Upload, ChevronRight, ChevronLeft, 
+    CheckCircle, PlusCircle, Globe, MapPin, Briefcase, 
+    Users, Target, DollarSign, Link as LinkIcon, Info, ShieldCheck, Loader2 
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Register() {
     const navigate = useNavigate();
@@ -23,14 +17,33 @@ export default function Register() {
     const [formData, setFormData] = useState({
         // Auth & Basic
         email: '', password: '', name: '', website_url: '', logo: '',
+        tagline: '', detailed_description: '', founded_year: '', 
+        legal_entity_name: '', company_registration_number: '',
+        contact_phone: '', contact_email: '', // Captured for connectivity
+        
         // Location
-        city: '', state: '', country: '',
-        // Startup Specific
-        tagline: '', detailed_description: '', status: 'idea', primary_industry: '',
-        funding_stage: 'bootstrapped', seeking_incubation: false,
+        city: '', state: '', country: '', remote_friendly: false,
+        
+        // Startup Specific - Market & Product
+        status: 'idea', primary_industry: '', niche: '', 
+        problem_statement: '', target_market: 'B2B', customer_segment: '',
+        product_stage: 'concept', business_model: '', revenue_model: '', ip_status: 'none',
+        
+        // Startup Specific - Funding & Team
+        funding_stage: 'bootstrapped', total_funding_amount: 0, key_investors: '',
+        team_size: 1, hiring: false,
+        
+        // Looking For
+        seeking_incubation: false, seeking_funding: false, 
+        seeking_partners: false, seeking_mentors: false,
+
+        // Socials
+        linkedin_url: '', twitter_url: '', pitch_deck_url: '',
+
         // Incubator Specific
-        organization_type: 'incubator', mentorship_offered: false, office_space: false,
-        startups_funded: 0 // Changed from funding_offered to a numeric field
+        organization_type: 'incubator', startups_funded: 0,
+        program_name: '', program_format: 'hybrid', equity_taken_percentage: 0,
+        mentorship_offered: false, office_space: false
     });
 
     const handleLogoUpload = (e) => {
@@ -48,212 +61,231 @@ export default function Register() {
         try {
             const res = await api.post('/auth/register', { ...formData, role });
             
+            // --- SYNCED STORAGE PROTOCOL ---
             localStorage.setItem('token', res.data.token);
-            localStorage.setItem('myStartupId', res.data.user.profileId);
+            
+            // 1. Store the SLUG for unique URLs (Navigation)
+            localStorage.setItem('myStartupId', res.data.user.profileSlug || res.data.user.profileId); 
+            
+            // 2. Store the MongoDB ObjectID for Chat rooms and Logic
+            localStorage.setItem('myProfileId', res.data.user.profileId);
+            
             localStorage.setItem('userRole', res.data.user.role);
             
+            // Force hard refresh to initialize Socket connection immediately
             window.location.href = '/feed';
         } catch (err) {
-            alert(err.response?.data?.message || "Registration failed.");
+            const errorMessage = err.response?.data?.message || err.response?.data?.error || "Registration encountered a protocol error.";
+            console.error("Backend Error Details:", err.response?.data);
+            alert(`Registration Failed: ${errorMessage}`);
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 pt-24 pb-12 px-4">
-            <div className="max-w-3xl mx-auto bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100">
+        <div className="min-h-screen bg-[#fafafa] bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:24px_24px] pt-24 pb-12 px-4 font-sans">
+            <div className="max-w-3xl mx-auto bg-white rounded-[48px] shadow-2xl overflow-hidden border border-gray-100">
                 
-                {/* Visual Progress Header */}
-                <div className="bg-gray-100 h-1.5 flex">
-                    <div className={`bg-startup-blue transition-all duration-700 h-full ${step === 1 ? 'w-1/3' : step === 2 ? 'w-2/3' : 'w-full'}`} />
+                {/* Dynamic Progress Header */}
+                <div className="bg-gray-100 h-2 flex">
+                    <motion.div 
+                        initial={{ width: 0 }}
+                        animate={{ width: `${(step / 4) * 100}%` }}
+                        className="bg-startup-blue h-full shadow-[0_0_20px_rgba(59,130,246,0.5)]" 
+                    />
                 </div>
 
-                <div className="p-8 md:p-12">
+                <div className="p-8 md:p-16">
                     
                     {/* STEP 1: Role Selection */}
                     {step === 1 && (
-                        <div className="space-y-8 animate-in fade-in duration-500">
+                        <div className="space-y-10 animate-in fade-in zoom-in-95 duration-500">
                             <div className="text-center">
-                                <h1 className="text-4xl font-black text-gray-900 tracking-tight">Identify Yourself</h1>
-                                <p className="text-gray-500 mt-2 font-medium">Select your role in the ecosystem to continue</p>
+                                <h1 className="text-5xl font-black text-gray-900 tracking-tighter leading-none uppercase">Identify Path</h1>
+                                <p className="text-gray-400 mt-4 font-bold uppercase text-[10px] tracking-widest">Initialization of ecosystem entry</p>
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <button 
                                     type="button"
-                                    onClick={() => { setRole('startup'); setStep(2); }}
-                                    className={`p-8 rounded-3xl border-2 transition-all text-left group relative overflow-hidden ${role === 'startup' ? 'border-startup-blue bg-blue-50/50' : 'border-gray-100 hover:border-blue-200'}`}
+                                    onClick={() => { setRole('startup'); setStep(2); }} 
+                                    className={`p-10 rounded-[40px] border-4 transition-all text-left group relative overflow-hidden ${role === 'startup' ? 'border-startup-blue bg-blue-50/30' : 'border-gray-50 hover:border-blue-100'}`}
                                 >
-                                    <Rocket className={`w-12 h-12 mb-4 ${role === 'startup' ? 'text-startup-blue' : 'text-gray-300'}`} />
-                                    <h3 className="font-black text-xl text-gray-800">I am a Startup</h3>
-                                    <p className="text-xs text-gray-500 mt-2 leading-relaxed">I am building a product/service and looking to scale, find funding, or incubation.</p>
-                                    {role === 'startup' && <CheckCircle className="absolute top-4 right-4 text-startup-blue" size={20} />}
+                                    <Rocket className={`w-14 h-14 mb-6 ${role === 'startup' ? 'text-startup-blue' : 'text-gray-300'}`} />
+                                    <h3 className="font-black text-2xl text-gray-900 uppercase">Startup</h3>
+                                    <p className="text-sm text-gray-500 mt-2 leading-relaxed">Building product and scaling ops.</p>
+                                    {role === 'startup' && <CheckCircle className="absolute top-6 right-6 text-startup-blue" size={28} />}
                                 </button>
                                 
                                 <button 
                                     type="button"
-                                    onClick={() => { setRole('incubator'); setStep(2); }}
-                                    className={`p-8 rounded-3xl border-2 transition-all text-left group relative overflow-hidden ${role === 'incubator' ? 'border-startup-blue bg-blue-50/50' : 'border-gray-100 hover:border-blue-200'}`}
+                                    onClick={() => { setRole('incubator'); setStep(2); }} 
+                                    className={`p-10 rounded-[40px] border-4 transition-all text-left group relative overflow-hidden ${role === 'incubator' ? 'border-startup-blue bg-blue-50/30' : 'border-gray-50 hover:border-blue-100'}`}
                                 >
-                                    <Building2 className={`w-12 h-12 mb-4 ${role === 'incubator' ? 'text-startup-blue' : 'text-gray-300'}`} />
-                                    <h3 className="font-black text-xl text-gray-800">I am an Incubator</h3>
-                                    <p className="text-xs text-gray-500 mt-2 leading-relaxed">I provide mentorship, resources, and programs to help startups succeed.</p>
-                                    {role === 'incubator' && <CheckCircle className="absolute top-4 right-4 text-startup-blue" size={20} />}
+                                    <Building2 className={`w-14 h-14 mb-6 ${role === 'incubator' ? 'text-startup-blue' : 'text-gray-300'}`} />
+                                    <h3 className="font-black text-2xl text-gray-900 uppercase">Incubator</h3>
+                                    <p className="text-sm text-gray-500 mt-2 leading-relaxed">Resources and program access.</p>
+                                    {role === 'incubator' && <CheckCircle className="absolute top-6 right-6 text-startup-blue" size={28} />}
                                 </button>
                             </div>
                         </div>
                     )}
 
-                    {/* STEP 2: Credentials & Brand */}
+                    {/* STEP 2: Core Identity */}
                     {step === 2 && (
-                        <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
-                            <div className="flex items-center gap-4 mb-4">
-                                <button type="button" onClick={() => setStep(1)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors"><ChevronLeft /></button>
-                                <h2 className="text-2xl font-black text-gray-900">Core Identity</h2>
+                        <div className="space-y-8 animate-in slide-in-from-right-8 duration-500">
+                            <div className="flex items-center gap-4">
+                                <button type="button" onClick={() => setStep(1)} className="p-3 bg-gray-100 hover:bg-gray-200 rounded-2xl transition-all"><ChevronLeft size={20}/></button>
+                                <h2 className="text-3xl font-black text-gray-900 tracking-tight uppercase">Core Identity</h2>
                             </div>
                             
                             <div className="flex flex-col items-center py-4">
                                 <label className="relative cursor-pointer group">
-                                    <div className="w-28 h-28 bg-gray-50 rounded-3xl flex items-center justify-center overflow-hidden border-2 border-dashed border-gray-200 group-hover:border-startup-blue transition-colors">
-                                        {formData.logo ? (
-                                            <img src={formData.logo} className="w-full h-full object-cover" alt="Logo" />
-                                        ) : (
-                                            <Upload className="text-gray-300" size={32} />
-                                        )}
+                                    <div className="w-32 h-32 bg-gray-50 rounded-[32px] flex items-center justify-center overflow-hidden border-4 border-dashed border-gray-200 group-hover:border-startup-blue transition-all">
+                                        {formData.logo ? <img src={formData.logo} className="w-full h-full object-cover" alt="logo" /> : <Upload className="text-gray-300" size={32} />}
+                                    </div>
+                                    <div className="absolute -bottom-2 -right-2 bg-startup-blue text-white p-2.5 rounded-2xl shadow-xl border-4 border-white">
+                                        <PlusCircle size={18} />
                                     </div>
                                     <input type="file" className="hidden" accept="image/*" onChange={handleLogoUpload} />
-                                    <div className="absolute -bottom-2 -right-2 bg-startup-blue text-white p-2 rounded-xl shadow-lg border-4 border-white">
-                                        <PlusCircle size={16} />
-                                    </div>
                                 </label>
-                                <p className="text-[10px] font-black text-gray-400 mt-4 uppercase tracking-widest">Brand Mark / Logo</p>
+                                <p className="text-[10px] font-black text-gray-400 mt-4 uppercase tracking-[0.2em]">Entity Mark / Logo</p>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                 <div className="space-y-1">
-                                    <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Entity Name</label>
-                                    <input type="text" placeholder="e.g. Acme Corp" className="w-full p-3.5 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-startup-blue/20 outline-none" onChange={e => setFormData({...formData, name: e.target.value})} />
+                                    <label className="text-[10px] font-black uppercase text-gray-400 ml-2">Official Name</label>
+                                    <input type="text" placeholder="e.g. Acme Corp" className="w-full p-5 bg-gray-50 rounded-2xl outline-none focus:ring-2 focus:ring-startup-blue/20 font-bold" onChange={e => setFormData({...formData, name: e.target.value})} required />
                                 </div>
                                 <div className="space-y-1">
-                                    <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Work Email</label>
-                                    <input type="email" placeholder="hello@company.com" className="w-full p-3.5 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-startup-blue/20 outline-none" onChange={e => setFormData({...formData, email: e.target.value})} />
+                                    <label className="text-[10px] font-black uppercase text-gray-400 ml-2">Auth Email</label>
+                                    <input type="email" placeholder="hello@company.com" className="w-full p-5 bg-gray-50 rounded-2xl outline-none focus:ring-2 focus:ring-startup-blue/20 font-bold" onChange={e => setFormData({...formData, email: e.target.value})} required />
                                 </div>
                                 <div className="space-y-1">
-                                    <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Secure Password</label>
-                                    <input type="password" placeholder="••••••••" className="w-full p-3.5 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-startup-blue/20 outline-none" onChange={e => setFormData({...formData, password: e.target.value})} />
+                                    <label className="text-[10px] font-black uppercase text-gray-400 ml-2">Secure Password</label>
+                                    <input type="password" placeholder="••••••••" className="w-full p-5 bg-gray-50 rounded-2xl outline-none focus:ring-2 focus:ring-startup-blue/20 font-bold" onChange={e => setFormData({...formData, password: e.target.value})} required />
                                 </div>
                                 <div className="space-y-1">
-                                    <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Website URL</label>
-                                    <div className="relative">
-                                        <Globe className="absolute left-4 top-3.5 text-gray-300" size={18} />
-                                        <input type="text" placeholder="www.example.com" className="w-full p-3.5 pl-12 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-startup-blue/20 outline-none" onChange={e => setFormData({...formData, website_url: e.target.value})} />
-                                    </div>
+                                    <label className="text-[10px] font-black uppercase text-gray-400 ml-2">Website URL</label>
+                                    <input type="text" placeholder="www.example.com" className="w-full p-5 bg-gray-50 rounded-2xl outline-none focus:ring-2 focus:ring-startup-blue/20 font-bold" onChange={e => setFormData({...formData, website_url: e.target.value})} />
                                 </div>
                             </div>
-                            <button type="button" onClick={() => setStep(3)} className="w-full bg-startup-blue text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-blue-100 flex items-center justify-center gap-2 hover:translate-y-[-2px] transition-all">
-                                Next: {role === 'startup' ? 'Product Info' : 'Program Info'} <ChevronRight size={18} />
+                            <button type="button" onClick={() => setStep(3)} className="w-full bg-startup-blue text-white py-6 rounded-[28px] font-black uppercase tracking-widest text-xs shadow-2xl hover:translate-y-[-2px] transition-all flex items-center justify-center gap-2">
+                                Next: Specs <ChevronRight size={18} />
                             </button>
                         </div>
                     )}
 
-                    {/* STEP 3: Specialized Data */}
+                    {/* STEP 3: Professional Specifications */}
                     {step === 3 && (
-                        <form onSubmit={handleSubmit} className="space-y-6 animate-in slide-in-from-right-4 duration-300">
-                            <div className="flex items-center gap-4 mb-4">
-                                <button type="button" onClick={() => setStep(2)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors"><ChevronLeft /></button>
-                                <h2 className="text-2xl font-black text-gray-900">{role === 'startup' ? 'Startup Intelligence' : 'Incubator Program'}</h2>
+                        <div className="space-y-8 animate-in slide-in-from-right-8 duration-500">
+                            <div className="flex items-center gap-4">
+                                <button type="button" onClick={() => setStep(2)} className="p-3 bg-gray-100 rounded-2xl"><ChevronLeft size={20}/></button>
+                                <h2 className="text-3xl font-black text-gray-900 tracking-tight uppercase">Specs</h2>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                 {role === 'startup' ? (
                                     <>
                                         <div className="md:col-span-2 space-y-1">
-                                            <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Tagline</label>
-                                            <input type="text" placeholder="Your startup in one sentence" className="w-full p-3.5 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-startup-blue/20" onChange={e => setFormData({...formData, tagline: e.target.value})} />
+                                            <label className="text-[10px] font-black uppercase text-gray-400 ml-2">Tagline</label>
+                                            <input placeholder="Innovating the..." className="w-full p-5 bg-gray-50 rounded-2xl outline-none font-bold" onChange={e => setFormData({...formData, tagline: e.target.value})} />
                                         </div>
                                         <div className="space-y-1">
-                                            <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Current Status</label>
-                                            <select className="w-full p-3.5 bg-gray-50 border border-gray-100 rounded-2xl outline-none appearance-none" onChange={e => setFormData({...formData, status: e.target.value})}>
-                                                <option value="idea">Idea Stage</option>
-                                                <option value="MVP">MVP Live</option>
-                                                <option value="early-stage">Early Traction</option>
-                                                <option value="scaling">Scaling</option>
+                                            <label className="text-[10px] font-black uppercase text-gray-400 ml-2">Industry</label>
+                                            <input placeholder="e.g. FinTech" className="w-full p-5 bg-gray-50 rounded-2xl outline-none font-bold" onChange={e => setFormData({...formData, primary_industry: e.target.value})} />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-black uppercase text-gray-400 ml-2">Market</label>
+                                            <select className="w-full p-5 bg-gray-50 rounded-2xl outline-none font-bold" onChange={e => setFormData({...formData, target_market: e.target.value})}>
+                                                <option value="B2B">B2B (Enterprise)</option>
+                                                <option value="B2C">B2C (Consumer)</option>
+                                                <option value="B2G">B2G (Government)</option>
                                             </select>
                                         </div>
-                                        <div className="space-y-1">
-                                            <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Industry</label>
-                                            <div className="relative">
-                                                <Briefcase className="absolute left-4 top-3.5 text-gray-300" size={18} />
-                                                <input type="text" placeholder="e.g. FinTech" className="w-full p-3.5 pl-12 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-startup-blue/20" onChange={e => setFormData({...formData, primary_industry: e.target.value})} />
-                                            </div>
-                                        </div>
-                                        <div className="md:col-span-2 flex items-center gap-4 p-5 bg-blue-50/50 rounded-2xl border border-blue-100/50">
-                                            <input type="checkbox" className="w-5 h-5 accent-startup-blue" onChange={e => setFormData({...formData, seeking_incubation: e.target.checked})} />
-                                            <label className="text-xs font-bold text-blue-800">We are currently looking for Incubation / Acceleration programs</label>
+                                        <div className="md:col-span-2 space-y-1">
+                                            <label className="text-[10px] font-black uppercase text-gray-400 ml-2">Mission</label>
+                                            <textarea placeholder="Problem Statement..." className="w-full p-6 bg-gray-50 rounded-[32px] outline-none h-32 font-bold resize-none" onChange={e => setFormData({...formData, problem_statement: e.target.value})} />
                                         </div>
                                     </>
                                 ) : (
                                     <>
                                         <div className="md:col-span-2 space-y-1">
-                                            <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Organization Type</label>
-                                            <select className="w-full p-3.5 bg-gray-50 border border-gray-100 rounded-2xl outline-none" onChange={e => setFormData({...formData, organization_type: e.target.value})}>
+                                            <label className="text-[10px] font-black uppercase text-gray-400 ml-2">Incubator Bio</label>
+                                            <textarea placeholder="Program description..." className="w-full p-6 bg-gray-50 rounded-[32px] h-24 font-bold outline-none" onChange={e => setFormData({...formData, detailed_description: e.target.value})} />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-black uppercase text-gray-400 ml-2">Org Type</label>
+                                            <select className="w-full p-5 bg-gray-50 rounded-2xl outline-none font-bold" onChange={e => setFormData({...formData, organization_type: e.target.value})}>
                                                 <option value="incubator">Incubator</option>
                                                 <option value="accelerator">Accelerator</option>
                                                 <option value="VC-backed">VC-Backed Studio</option>
-                                                <option value="government">Government Program</option>
                                             </select>
                                         </div>
-                                        {/* REPLACED FUNDING OFFERED WITH STARTUPS FUNDED */}
                                         <div className="space-y-1">
-                                            <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Startups Funded</label>
-                                            <input 
-                                                type="number" 
-                                                min="0"
-                                                onKeyDown={(e) => { if (e.key === '-' || e.key === '.') e.preventDefault(); }}
-                                                placeholder="e.g. 15" 
-                                                className="w-full p-3.5 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-startup-blue/20" 
-                                                onChange={e => setFormData({...formData, startups_funded: parseInt(e.target.value) || 0})} 
-                                            />
-                                        </div>
-                                        <div className="space-y-4 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div className="flex items-center gap-3 p-4 bg-green-50/50 rounded-2xl border border-green-100/50">
-                                                <input type="checkbox" className="w-5 h-5 accent-green-600" onChange={e => setFormData({...formData, mentorship_offered: e.target.checked})} />
-                                                <label className="text-[10px] font-black text-green-800 uppercase tracking-widest">Mentorship</label>
-                                            </div>
-                                            <div className="flex items-center gap-3 p-4 bg-green-50/50 rounded-2xl border border-green-100/50">
-                                                <input type="checkbox" className="w-5 h-5 accent-green-600" onChange={e => setFormData({...formData, office_space: e.target.checked})} />
-                                                <label className="text-[10px] font-black text-green-800 uppercase tracking-widest">Office Space</label>
-                                            </div>
+                                            <label className="text-[10px] font-black uppercase text-gray-400 ml-2">Equity Taken %</label>
+                                            <input type="number" placeholder="0" className="w-full p-5 bg-gray-50 rounded-2xl outline-none font-bold" onChange={e => setFormData({...formData, equity_taken_percentage: e.target.value})} />
                                         </div>
                                     </>
                                 )}
+                            </div>
+                            <button onClick={() => setStep(4)} className="w-full bg-startup-blue text-white py-6 rounded-[28px] font-black uppercase tracking-widest text-xs shadow-2xl flex items-center justify-center gap-2">
+                                Next: Connectivity <ChevronRight size={18} />
+                            </button>
+                        </div>
+                    )}
+
+                    {/* STEP 4: Network & Finalization */}
+                    {step === 4 && (
+                        <form onSubmit={handleSubmit} className="space-y-8 animate-in slide-in-from-right-8 duration-500">
+                            <div className="flex items-center gap-4">
+                                <button type="button" onClick={() => setStep(3)} className="p-3 bg-gray-100 rounded-2xl"><ChevronLeft size={20}/></button>
+                                <h2 className="text-3xl font-black text-gray-900 tracking-tight uppercase">Connectivity</h2>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                 <div className="space-y-1">
-                                    <label className="text-[10px] font-black text-gray-400 uppercase ml-1">HQ City</label>
-                                    <div className="relative">
-                                        <MapPin className="absolute left-4 top-3.5 text-gray-300" size={18} />
-                                        <input type="text" placeholder="City" className="w-full p-3.5 pl-12 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-startup-blue/20" onChange={e => setFormData({...formData, city: e.target.value})} />
-                                    </div>
+                                    <label className="text-[10px] font-black uppercase text-gray-400 ml-2">City</label>
+                                    <input placeholder="e.g. New York" className="w-full p-5 bg-gray-50 rounded-2xl font-bold outline-none" onChange={e => setFormData({...formData, city: e.target.value})} required />
                                 </div>
                                 <div className="space-y-1">
-                                    <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Country</label>
-                                    <input type="text" placeholder="Country" className="w-full p-3.5 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-startup-blue/20" onChange={e => setFormData({...formData, country: e.target.value})} />
+                                    <label className="text-[10px] font-black uppercase text-gray-400 ml-2">Country</label>
+                                    <input placeholder="USA" className="w-full p-5 bg-gray-50 rounded-2xl font-bold outline-none" onChange={e => setFormData({...formData, country: e.target.value})} required />
+                                </div>
+
+                                {/* CONTACT FIELDS INTEGRATED */}
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-black uppercase text-gray-400 ml-2">Public Contact Email</label>
+                                    <input type="email" placeholder="contact@company.com" className="w-full p-5 bg-gray-50 rounded-2xl font-bold outline-none" onChange={e => setFormData({...formData, contact_email: e.target.value})} />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-black uppercase text-gray-400 ml-2">Public Phone</label>
+                                    <input type="text" placeholder="+1..." className="w-full p-5 bg-gray-50 rounded-2xl font-bold outline-none" onChange={e => setFormData({...formData, contact_phone: e.target.value})} />
+                                </div>
+                                
+                                <div className="md:col-span-2 space-y-1">
+                                    <label className="text-[10px] font-black uppercase text-gray-400 ml-2">LinkedIn URL</label>
+                                    <input placeholder="linkedin.com/company/..." className="w-full p-5 bg-gray-50 rounded-2xl font-bold outline-none" onChange={e => setFormData({...formData, linkedin_url: e.target.value})} />
                                 </div>
                             </div>
 
                             <button 
                                 type="submit" 
-                                disabled={loading}
-                                className="w-full bg-black text-white py-5 rounded-2xl font-black uppercase tracking-[0.2em] text-xs flex items-center justify-center gap-3 hover:bg-startup-blue transition-colors shadow-xl disabled:opacity-50"
+                                disabled={loading} 
+                                className="w-full bg-black text-white py-6 rounded-[32px] font-black uppercase tracking-[0.3em] text-xs shadow-2xl flex items-center justify-center gap-4 hover:bg-startup-blue transition-all disabled:opacity-50 group"
                             >
-                                {loading ? "Encrypting Profile..." : "Initialize Ecosystem Account"} <CheckCircle size={20} />
+                                {loading ? (
+                                    <Loader2 className="animate-spin" size={20} />
+                                ) : (
+                                    <>Initialize Identity <ShieldCheck className="group-hover:scale-125 transition-transform" size={20} /></>
+                                )}
                             </button>
                         </form>
                     )}
 
-                    {/* Shared Auth Footer */}
-                    <div className="mt-10 pt-8 border-t border-gray-100 text-center">
-                        <p className="text-sm text-gray-500 font-medium">
-                            Already have an account? <Link to="/login" className="text-startup-blue font-black hover:underline underline-offset-4">Sign in here</Link>
+                    <div className="mt-12 pt-8 border-t border-gray-100 text-center">
+                        <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">
+                            Existing Identity? <Link to="/login" className="text-startup-blue hover:underline underline-offset-4 transition-all ml-1">Authenticate</Link>
                         </p>
                     </div>
                 </div>

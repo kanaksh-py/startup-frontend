@@ -8,54 +8,66 @@ import Chat from './pages/Chat';
 import Navbar from './components/Navbar';
 import Profile from './pages/Profile';
 import SearchResults from './pages/SearchResults';
+import Landing from './pages/Landing';
 
 function App() {
   const [socket, setSocket] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0); 
   const token = localStorage.getItem('token');
-  const myId = localStorage.getItem('myStartupId');
+  
+  // profileId is the MongoDB ObjectID used for backend logic
+  const myProfileId = localStorage.getItem('myProfileId'); 
 
   useEffect(() => {
-    if (!token) return;
+    if (!token) {
+        if (socket) socket.close();
+        return;
+    }
 
     // Initialize socket connection
     const newSocket = io('http://localhost:5000', {
-      auth: { token }
+      auth: { token },
+      transports: ['websocket', 'polling'] 
     });
 
-    setSocket(newSocket);
+    newSocket.on("connect", () => {
+      console.log("Socket Connected:", newSocket.id);
+    });
 
-    // Socket listeners
     newSocket.on("receive_message", (msg) => {
-      // Logic: If I am NOT on the chat page AND the message is NOT from me
-      // (Using String comparison to be safe with MongoDB IDs)
-      const isNotChatPage = !window.location.pathname.includes('/chat');
-      const isNotFromMe = String(msg.sender) !== String(myId);
+      const isChatPage = window.location.pathname.includes('/chat');
+      // If user is not on chat page and message is from someone else
+      const isNotFromMe = String(msg.sender) !== String(myProfileId);
 
-      if (isNotChatPage && isNotFromMe) {
+      if (!isChatPage && isNotFromMe) {
         setUnreadCount((prev) => prev + 1);
       }
     });
 
-    // Cleanup on unmount or token change
+    newSocket.on("connect_error", (err) => {
+      console.error("Socket Auth Error:", err.message);
+    });
+
+    setSocket(newSocket);
+
     return () => {
       newSocket.off("receive_message");
       newSocket.close();
     };
-  }, [token, myId]);
+  }, [token, myProfileId]);
 
   return (
     <Router>
-      {/* Navbar stays synced with unreadCount */}
       {token && <Navbar unreadCount={unreadCount} setUnreadCount={setUnreadCount} />}
       
       <Routes>
+        <Route path="/" element={<Landing />} />
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
         <Route path="/feed" element={<Feed />} />
         <Route path="/profile/:id" element={<Profile />} />
         <Route path="/search" element={<SearchResults />} />
-        {/* Chat component clears the count via setUnreadCount */}
+        
         <Route 
           path="/chat" 
           element={

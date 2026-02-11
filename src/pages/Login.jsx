@@ -1,101 +1,98 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import api from '../api/axios.jsx';
-import { Lock, Mail, Rocket } from 'lucide-react';
+import api from '../api/axios';
+import { Mail, Lock, Loader2, Rocket, AlertCircle } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 export default function Login() {
     const [formData, setFormData] = useState({ email: '', password: '' });
-    const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
-    const navigate = useNavigate();
+    const [error, setError] = useState('');
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setError('');
         setLoading(true);
+        setError('');
+
         try {
             const res = await api.post('/auth/login', formData);
             
-            // Matches the new backend: { token, user: { id, role, profileId, ... } }
-            const { token, user } = res.data;
+            // --- SYNCHRONIZED STORAGE PROTOCOL ---
+            localStorage.setItem('token', res.data.token);
+            
+            // 1. Slug for Profile URLs
+            localStorage.setItem('myStartupId', res.data.user.profileSlug);
+            
+            // 2. ObjectID for Chat Room Logic
+            localStorage.setItem('myProfileId', res.data.user.profileId);
+            
+            localStorage.setItem('role', res.data.user.role);
 
-            if (token && user?.profileId) {
-                localStorage.setItem('token', token);
-                localStorage.setItem('myStartupId', user.profileId);
-                localStorage.setItem('userRole', user.role);
-                
-                // Force a small delay or window reload if your Navbar depends on localStorage
-                window.location.href = '/feed';
-            } else {
-                setError("Session data missing from server response.");
-            }
+            // Hard refresh to trigger Socket.io setup in App.jsx
+            window.location.href = '/feed'; 
         } catch (err) {
-            setError(err.response?.data?.message || 'Invalid email or password');
+            setError(err.response?.data?.message || "Authentication protocol failed.");
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gray-50">
-            <div className="w-full max-w-md bg-white p-8 rounded-3xl shadow-xl border border-gray-100">
-                <div className="flex flex-col items-center mb-8">
-                    <div className="bg-startup-blue p-4 rounded-2xl mb-4 shadow-lg shadow-blue-100">
-                        <Rocket className="text-white w-8 h-8" />
+        <div className="min-h-screen flex items-center justify-center bg-[#fafafa] bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:24px_24px] px-4">
+            <motion.div 
+                initial={{ opacity: 0, y: 20 }} 
+                animate={{ opacity: 1, y: 0 }} 
+                className="max-w-md w-full bg-white rounded-[40px] shadow-2xl border border-gray-100 p-10"
+            >
+                <div className="text-center mb-10">
+                    <div className="w-16 h-16 bg-startup-blue rounded-2xl flex items-center justify-center mx-auto mb-6">
+                        <Rocket className="text-white" size={32} />
                     </div>
-                    <h1 className="text-3xl font-black text-gray-900">Welcome Back</h1>
-                    <p className="text-gray-500 text-sm mt-1">Sign in to your ecosystem account</p>
+                    <h2 className="text-3xl font-black text-gray-900 uppercase tracking-tighter">Welcome Back</h2>
                 </div>
 
                 {error && (
-                    <div className="bg-red-50 text-red-600 p-4 rounded-xl mb-6 text-sm font-bold border border-red-100 flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 bg-red-600 rounded-full animate-pulse" />
-                        {error}
+                    <div className="mb-6 p-4 bg-red-50 text-red-600 rounded-2xl flex items-center gap-3 text-sm font-bold animate-shake">
+                        <AlertCircle size={18} /> {error}
                     </div>
                 )}
 
-                <form onSubmit={handleSubmit} className="space-y-5">
-                    <div>
-                        <label className="block text-[10px] font-black uppercase text-gray-400 mb-2 tracking-widest">Work Email</label>
-                        <div className="relative">
-                            <Mail className="absolute left-4 top-3.5 w-5 h-5 text-gray-300" />
-                            <input
-                                type="email"
-                                required
-                                className="w-full p-3.5 pl-12 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-startup-blue/20 focus:bg-white outline-none transition-all"
-                                placeholder="name@company.com"
-                                onChange={(e) => setFormData({...formData, email: e.target.value})}
-                            />
-                        </div>
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    <div className="space-y-1">
+                        <label className="text-[10px] font-black uppercase text-gray-400 ml-4">Email</label>
+                        <input
+                            type="email"
+                            required
+                            className="w-full px-6 py-4 bg-gray-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-startup-blue/20 transition-all font-bold"
+                            placeholder="name@company.com"
+                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        />
                     </div>
 
-                    <div>
-                        <label className="block text-[10px] font-black uppercase text-gray-400 mb-2 tracking-widest">Password</label>
-                        <div className="relative">
-                            <Lock className="absolute left-4 top-3.5 w-5 h-5 text-gray-300" />
-                            <input
-                                type="password"
-                                required
-                                className="w-full p-3.5 pl-12 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-startup-blue/20 focus:bg-white outline-none transition-all"
-                                placeholder="••••••••"
-                                onChange={(e) => setFormData({...formData, password: e.target.value})}
-                            />
-                        </div>
+                    <div className="space-y-1">
+                        <label className="text-[10px] font-black uppercase text-gray-400 ml-4">Password</label>
+                        <input
+                            type="password"
+                            required
+                            className="w-full px-6 py-4 bg-gray-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-startup-blue/20 transition-all font-bold"
+                            placeholder="••••••••"
+                            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                        />
                     </div>
 
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full bg-startup-blue text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-blue-100 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 cursor-pointer"
+                        className="w-full bg-gray-900 text-white py-5 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl flex items-center justify-center gap-3"
                     >
-                        {loading ? 'Authenticating...' : 'Sign In'}
+                        {loading ? <Loader2 className="animate-spin" size={18} /> : "Authorize Sync"}
                     </button>
                 </form>
 
-                <p className="text-center mt-8 text-sm text-gray-500 font-medium">
-                    New here? <Link to="/register" className="text-startup-blue font-black hover:underline">Create an account</Link>
-                </p>
-            </div>
+                <div className="mt-10 text-center">
+                    <Link to="/register" className="text-startup-blue font-black uppercase text-[10px] tracking-widest hover:underline">Initialize New Identity</Link>
+                </div>
+            </motion.div>
         </div>
     );
 }
